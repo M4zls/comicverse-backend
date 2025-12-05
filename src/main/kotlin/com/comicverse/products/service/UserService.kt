@@ -34,11 +34,18 @@ class UserService(
     }
 
     suspend fun login(email: String, password: String): User {
-        val user = userRepository.findByEmail(email)
-        if (user.password == password) {
-            return user
-        } else {
-            throw Exception("Invalid credentials")
+        return try {
+            val user = userRepository.findByEmail(email)
+            if (user.password == password) {
+                return user
+            } else {
+                throw Exception("Invalid password")
+            }
+        } catch (e: Exception) {
+            if (e.message == "Invalid password") {
+                throw e
+            }
+            throw Exception("User not found with email: $email")
         }
     }
 }

@@ -77,12 +77,13 @@ class UserController(
     }
 
     @PostMapping("/login")
-    suspend fun login(@RequestBody request: LoginRequest): ResponseEntity<UserResponse> {
+    suspend fun login(@RequestBody request: LoginRequest): ResponseEntity<Any> {
         return try {
             val user = userService.login(request.email, request.password)
             ResponseEntity.ok(user.toResponse())
         } catch (e: Exception) {
-            ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            val errorMessage = mapOf("error" to (e.message ?: "Invalid credentials"))
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorMessage)
         }
     }
 

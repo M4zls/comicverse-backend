@@ -10,14 +10,14 @@ class OrderRepository {
 
     suspend fun findAll(): List<Order> {
         return SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .select()
             .decodeList<Order>()
     }
 
     suspend fun findById(id: Int): Order {
         return SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .select {
                 filter {
                     eq("id", id)
@@ -28,7 +28,7 @@ class OrderRepository {
 
     suspend fun findByUserId(userId: Int): List<Order> {
         return SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .select {
                 filter {
                     eq("user_id", userId)
@@ -39,7 +39,7 @@ class OrderRepository {
 
     suspend fun save(userId: Int, total: Int): Order {
         return SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .insert(
                 mapOf(
                     "user_id" to userId,
@@ -54,7 +54,7 @@ class OrderRepository {
 
     suspend fun updateStatus(id: Int, status: String): Order {
         return SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .update(
                 mapOf("status" to status)
             ) {
@@ -68,7 +68,7 @@ class OrderRepository {
 
     suspend fun deleteById(id: Int) {
         SupabaseClient.client
-            .from("Orders")
+            .from("orders")
             .delete {
                 filter {
                     eq("id", id)
@@ -78,7 +78,7 @@ class OrderRepository {
 
     suspend fun findOrderItemsByOrderId(orderId: Int): List<OrderItem> {
         return SupabaseClient.client
-            .from("OrderItems")
+            .from("order_items")
             .select {
                 filter {
                     eq("order_id", orderId)
@@ -89,7 +89,7 @@ class OrderRepository {
 
     suspend fun saveOrderItem(orderId: Int, mangaId: String, quantity: Int, price: Int): OrderItem {
         return SupabaseClient.client
-            .from("OrderItems")
+            .from("order_items")
             .insert(
                 mapOf(
                     "order_id" to orderId,
@@ -105,7 +105,7 @@ class OrderRepository {
 
     suspend fun deleteOrderItemsByOrderId(orderId: Int) {
         SupabaseClient.client
-            .from("OrderItems")
+            .from("order_items")
             .delete {
                 filter {
                     eq("order_id", orderId)

@@ -32,4 +32,13 @@ class UserService(
     suspend fun deleteUser(id: Int) {
         userRepository.deleteById(id)
     }
+
+    suspend fun login(email: String, password: String): User {
+        val user = userRepository.findByEmail(email)
+        if (user.password == password) {
+            return user
+        } else {
+            throw Exception("Invalid credentials")
+        }
+    }
 }

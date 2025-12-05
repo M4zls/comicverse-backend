@@ -76,6 +76,16 @@ class UserController(
         }
     }
 
+    @PostMapping("/login")
+    suspend fun login(@RequestBody request: LoginRequest): ResponseEntity<UserResponse> {
+        return try {
+            val user = userService.login(request.email, request.password)
+            ResponseEntity.ok(user.toResponse())
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
+    }
+
     private fun User.toResponse() = UserResponse(
         id = id!!,
         email = email,
@@ -85,3 +95,9 @@ class UserController(
         created_at = created_at
     )
 }
+
+@kotlinx.serialization.Serializable
+data class LoginRequest(
+    val email: String,
+    val password: String
+)

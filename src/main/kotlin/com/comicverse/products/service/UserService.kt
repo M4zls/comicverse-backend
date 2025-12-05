@@ -37,7 +37,7 @@ class UserService(
         return try {
             val user = userRepository.findByEmail(email)
             if (user.password == password) {
-                return user
+                user
             } else {
                 throw Exception("Invalid password")
             }

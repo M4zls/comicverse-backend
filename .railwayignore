@@ -1,0 +1,12 @@
+# Railway ignore file
+.git
+.gradle
+build/
+*.log
+*.iml
+.idea/
+*.class
+bin/
+out/
+temp/
+tmp/

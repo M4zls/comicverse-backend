@@ -84,12 +84,16 @@ class OrderController(
             required = true
         )
         @RequestBody request: CreateOrderRequest
-    ): ResponseEntity<OrderWithDetails> {
+    ): ResponseEntity<Any> {
         return try {
+            println("Received create order request: $request")
             val orderWithDetails = orderService.createOrder(request)
             ResponseEntity.status(HttpStatus.CREATED).body(orderWithDetails)
         } catch (e: Exception) {
-            ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
+            println("Error creating order: ${e.message}")
+            e.printStackTrace()
+            val errorMessage = mapOf("error" to (e.message ?: "Failed to create order"))
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage)
         }
     }
 

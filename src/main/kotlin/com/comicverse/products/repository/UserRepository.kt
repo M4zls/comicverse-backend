@@ -10,14 +10,14 @@ class UserRepository {
 
     suspend fun findAll(): List<User> {
         return SupabaseClient.client
-            .from("Users")
+            .from("users")
             .select()
             .decodeList<User>()
     }
 
     suspend fun findById(id: Int): User {
         return SupabaseClient.client
-            .from("Users")
+            .from("users")
             .select {
                 filter {
                     eq("id", id)
@@ -28,7 +28,7 @@ class UserRepository {
 
     suspend fun findByEmail(email: String): User {
         return SupabaseClient.client
-            .from("Users")
+            .from("users")
             .select {
                 filter {
                     eq("email", email)
@@ -39,7 +39,7 @@ class UserRepository {
 
     suspend fun save(request: CreateUserRequest): User {
         return SupabaseClient.client
-            .from("Users")
+            .from("users")
             .insert(request) {
                 select()
             }
@@ -48,7 +48,7 @@ class UserRepository {
 
     suspend fun update(id: Int, request: UpdateUserRequest): User {
         return SupabaseClient.client
-            .from("Users")
+            .from("users")
             .update(request) {
                 filter {
                     eq("id", id)
@@ -60,7 +60,7 @@ class UserRepository {
 
     suspend fun deleteById(id: Int) {
         SupabaseClient.client
-            .from("Users")
+            .from("users")
             .delete {
                 filter {
                     eq("id", id)

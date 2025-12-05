@@ -38,26 +38,28 @@ class OrderRepository {
     }
 
     suspend fun save(userId: Int, total: Int): Order {
+        @kotlinx.serialization.Serializable
+        data class OrderInsert(
+            val user_id: Int,
+            val total: Int,
+            val status: String = "PENDING"
+        )
+        
         return SupabaseClient.client
             .from("orders")
-            .insert(
-                mapOf(
-                    "user_id" to userId,
-                    "total" to total,
-                    "status" to "PENDING"
-                )
-            ) {
+            .insert(OrderInsert(userId, total, "PENDING")) {
                 select()
             }
             .decodeSingle<Order>()
     }
 
     suspend fun updateStatus(id: Int, status: String): Order {
+        @kotlinx.serialization.Serializable
+        data class OrderStatusUpdate(val status: String)
+        
         return SupabaseClient.client
             .from("orders")
-            .update(
-                mapOf("status" to status)
-            ) {
+            .update(OrderStatusUpdate(status)) {
                 filter {
                     eq("id", id)
                 }
@@ -88,16 +90,17 @@ class OrderRepository {
     }
 
     suspend fun saveOrderItem(orderId: Int, mangaId: String, quantity: Int, price: Int): OrderItem {
+        @kotlinx.serialization.Serializable
+        data class OrderItemInsert(
+            val order_id: Int,
+            val manga_id: String,
+            val quantity: Int,
+            val price: Int
+        )
+        
         return SupabaseClient.client
             .from("order_items")
-            .insert(
-                mapOf(
-                    "order_id" to orderId,
-                    "manga_id" to mangaId,
-                    "quantity" to quantity,
-                    "price" to price
-                )
-            ) {
+            .insert(OrderItemInsert(orderId, mangaId, quantity, price)) {
                 select()
             }
             .decodeSingle<OrderItem>()

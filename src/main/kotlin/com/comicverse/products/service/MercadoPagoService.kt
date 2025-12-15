@@ -54,7 +54,6 @@ class MercadoPagoService(
             val preferenceRequestBuilder = PreferenceRequest.builder()
                 .items(listOf(item))
                 .backUrls(backUrls)
-                .autoReturn("approved")
                 .externalReference(request.externalReference)
 
             // Agregar email del pagador si está disponible

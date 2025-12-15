@@ -31,6 +31,9 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1")
     
+    // Mercado Pago SDK
+    implementation("com.mercadopago:sdk-java:2.1.26")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
    
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
     

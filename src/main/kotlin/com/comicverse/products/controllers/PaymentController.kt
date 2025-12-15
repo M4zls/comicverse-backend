@@ -1,12 +1,11 @@
 package com.comicverse.products.controllers
 
-import com.comicverse.products.models.PaymentInfo
-import com.comicverse.products.models.PaymentRequest
-import com.comicverse.products.models.PaymentResponse
-import com.comicverse.products.models.WebhookNotification
+import com.comicverse.products.models.*
 import com.comicverse.products.service.MercadoPagoService
+import com.comicverse.products.service.OrderService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import kotlinx.coroutines.runBlocking
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -16,7 +15,8 @@ import org.springframework.web.bind.annotation.*
 @CrossOrigin(origins = ["*"])
 @Tag(name = "Payments", description = "API de Pagos con Mercado Pago")
 class PaymentController(
-    private val mercadoPagoService: MercadoPagoService
+    private val mercadoPagoService: MercadoPagoService,
+    private val orderService: OrderService
 ) {
 
     /**
@@ -71,28 +71,64 @@ class PaymentController(
             when (notification.type) {
                 "payment" -> {
                     val paymentId = notification.data.id
-                    val status = mercadoPagoService.verifyPaymentStatus(paymentId)
+                    val paymentInfo = mercadoPagoService.getPaymentInfo(paymentId)
                     
-                    println("💳 Payment ID: $paymentId - Status: $status")
+                    println("💳 Payment ID: $paymentId - Status: ${paymentInfo.status}")
+                    println("💳 External Reference: ${paymentInfo.externalReference}")
                     
-                    // Aquí puedes agregar tu lógica de negocio
-                    when (status) {
+                    when (paymentInfo.status) {
                         "approved" -> {
                             println("✅ Pago aprobado: $paymentId")
-                            // TODO: Actualizar estado de la orden en tu base de datos
-                            // TODO: Enviar email de confirmación al cliente
-                            // TODO: Procesar el pedido
+                            
+                            // Obtener los datos del pago guardados
+                            paymentInfo.externalReference?.let { externalRef ->
+                                val paymentData = mercadoPagoService.getPendingPaymentData(externalRef)
+                                
+                                if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
+                                    // Crear la orden en Supabase
+                                    runBlocking {
+                                        try {
+                                            val orderRequest = CreateOrderRequest(
+                                                user_id = paymentData.userId,
+                                                items = paymentData.items.map { item ->
+                                                    CreateOrderItemRequest(
+                                                        manga_id = item.manga_id,
+                                                        quantity = item.quantity
+                                                    )
+                                                }
+                                            )
+                                            
+                                            val order = orderService.createOrder(orderRequest)
+                                            println("✅ Orden creada exitosamente: ${order.id}")
+                                            
+                                            // Actualizar el estado de la orden a PAID
+                                            orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                                            println("✅ Estado de orden actualizado a PAID")
+                                            
+                                            // Limpiar los datos temporales
+                                            mercadoPagoService.removePendingPaymentData(externalRef)
+                                        } catch (e: Exception) {
+                                            println("❌ Error al crear orden: ${e.message}")
+                                            e.printStackTrace()
+                                        }
+                                    }
+                                } else {
+                                    println("⚠️ No se encontraron datos del pago o faltan items/userId")
+                                }
+                            }
                         }
                         "pending" -> {
                             println("⏳ Pago pendiente: $paymentId")
-                            // TODO: Notificar al cliente que el pago está pendiente
                         }
                         "rejected" -> {
                             println("❌ Pago rechazado: $paymentId")
-                            // TODO: Notificar al cliente que el pago fue rechazado
+                            // Limpiar los datos si el pago fue rechazado
+                            paymentInfo.externalReference?.let { externalRef ->
+                                mercadoPagoService.removePendingPaymentData(externalRef)
+                            }
                         }
                         else -> {
-                            println("ℹ️ Estado del pago: $status")
+                            println("ℹ️ Estado del pago: ${paymentInfo.status}")
                         }
                     }
                 }

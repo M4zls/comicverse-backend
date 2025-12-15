@@ -12,7 +12,9 @@ data class PaymentRequest(
     val quantity: Int = 1,
     val currencyId: String = "CLP",
     val externalReference: String? = null,
-    val payerEmail: String? = null
+    val payerEmail: String? = null,
+    val userId: Int? = null, // ID del usuario para crear la orden
+    val items: List<CreateOrderItemRequest>? = null // Items del carrito para crear la orden
 )
 
 /**

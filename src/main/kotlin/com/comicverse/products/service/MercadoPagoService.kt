@@ -9,11 +9,14 @@ import com.mercadopago.client.preference.*
 import com.mercadopago.resources.payment.Payment
 import com.mercadopago.resources.preference.Preference
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class MercadoPagoService(
     private val mpConfig: MercadoPagoConfiguration
 ) {
+    // Cache temporal para guardar los datos del pago mientras se procesa
+    private val pendingPayments = ConcurrentHashMap<String, PaymentRequest>()
     
     /**
      * Crea una preferencia de pago en Mercado Pago
@@ -77,6 +80,12 @@ class MercadoPagoService(
             val preference: Preference = client.create(preferenceRequest)
             
             println("✅ Preferencia creada exitosamente: ${preference.id}")
+            
+            // Guardar los datos del pago para usar en el webhook
+            request.externalReference?.let { ref ->
+                pendingPayments[ref] = request
+                println("💾 Datos del pago guardados con referencia: $ref")
+            }
 
             return PaymentResponse(
                 id = preference.id,
@@ -122,6 +131,21 @@ class MercadoPagoService(
         return payment.status
     }
 
+    /**
+     * Recupera los datos del pago guardados
+     */
+    fun getPendingPaymentData(externalReference: String): PaymentRequest? {
+        return pendingPayments[externalReference]
+    }
+    
+    /**
+     * Elimina los datos del pago guardados
+     */
+    fun removePendingPaymentData(externalReference: String) {
+        pendingPayments.remove(externalReference)
+        println("🗑️ Datos del pago eliminados: $externalReference")
+    }
+    
     /**
      * Obtiene información detallada de un pago
      * @param paymentId ID del pago

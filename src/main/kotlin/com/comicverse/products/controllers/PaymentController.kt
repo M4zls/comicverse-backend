@@ -25,13 +25,17 @@ class PaymentController(
      */
     @PostMapping("/create")
     @Operation(summary = "Crear preferencia de pago", description = "Crea una nueva preferencia de pago en Mercado Pago y retorna el link de pago")
-    fun createPayment(@RequestBody request: PaymentRequest): ResponseEntity<PaymentResponse> {
+    fun createPayment(@RequestBody request: PaymentRequest): ResponseEntity<Any> {
         return try {
+            println("🔵 Recibiendo request de pago: $request")
             val response = mercadoPagoService.createPaymentPreference(request)
+            println("✅ Pago creado exitosamente: ${response.id}")
             ResponseEntity.ok(response)
         } catch (e: Exception) {
             println("❌ Error al crear pago: ${e.message}")
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+            e.printStackTrace()
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("error" to e.message, "details" to e.toString()))
         }
     }
 

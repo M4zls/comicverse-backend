@@ -22,6 +22,12 @@ class MercadoPagoService(
      */
     fun createPaymentPreference(request: PaymentRequest): PaymentResponse {
         try {
+            println("🔵 Creando preferencia de pago para: ${request.title} - Precio: ${request.price}")
+            
+            // Convertir el precio a BigDecimal
+            val priceValue = request.price.toBigDecimal()
+            println("🔵 Precio convertido: $priceValue")
+            
             // Crear item del pago
             val item = PreferenceItemRequest.builder()
                 .id(request.externalReference ?: System.currentTimeMillis().toString())
@@ -30,7 +36,7 @@ class MercadoPagoService(
                 .categoryId("others")
                 .quantity(request.quantity)
                 .currencyId(request.currencyId)
-                .unitPrice(request.price)
+                .unitPrice(priceValue)
                 .build()
 
             // Configurar URLs de retorno

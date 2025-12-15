@@ -157,9 +157,42 @@ class PaymentController(
     ): ResponseEntity<String> {
         println("✅ Success endpoint - Status: $status, Ref: $externalReference")
         
-        // NO crear orden aquí - el webhook lo hace
-        // Solo redirigir rápido a la app
+        // Crear la orden en un thread separado para no bloquear el redirect
+        if (status == "approved" && externalReference != null) {
+            Thread {
+                try {
+                    Thread.sleep(500) // Dar tiempo al redirect
+                    
+                    val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
+                    
+                    if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
+                        runBlocking {
+                            val orderRequest = CreateOrderRequest(
+                                user_id = paymentData.userId,
+                                items = paymentData.items.map { item ->
+                                    CreateOrderItemRequest(
+                                        manga_id = item.manga_id,
+                                        quantity = item.quantity
+                                    )
+                                }
+                            )
+                            
+                            val order = orderService.createOrder(orderRequest)
+                            println("✅✅ Orden creada: ${order.id}")
+                            
+                            orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                            mercadoPagoService.removePendingPaymentData(externalReference)
+                        }
+                    } else {
+                        println("⚠️ No hay datos para crear orden")
+                    }
+                } catch (e: Exception) {
+                    println("❌ Error creando orden en background: ${e.message}")
+                }
+            }.start()
+        }
         
+        // Redirigir inmediatamente
         return ResponseEntity.status(HttpStatus.FOUND)
             .header("Location", "comicverse://payment/success?ref=$externalReference")
             .build()

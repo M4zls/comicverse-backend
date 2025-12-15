@@ -10,7 +10,7 @@ data class PaymentRequest(
     val description: String? = null,
     val price: String, // String para evitar problemas de serialización
     val quantity: Int = 1,
-    val currencyId: String = "ARS",
+    val currencyId: String = "CLP",
     val externalReference: String? = null,
     val payerEmail: String? = null
 )

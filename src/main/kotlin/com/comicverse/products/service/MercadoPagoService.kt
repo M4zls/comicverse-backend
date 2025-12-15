@@ -54,6 +54,7 @@ class MercadoPagoService(
             val preferenceRequestBuilder = PreferenceRequest.builder()
                 .items(listOf(item))
                 .backUrls(backUrls)
+                .statementDescriptor("COMICVERSE")
                 .externalReference(request.externalReference)
 
             // Agregar email del pagador si está disponible
@@ -62,6 +63,8 @@ class MercadoPagoService(
                 preferenceRequestBuilder.payer(
                     PreferencePayerRequest.builder()
                         .email(email)
+                        .name("Test")
+                        .surname("User")
                         .build()
                 )
             }

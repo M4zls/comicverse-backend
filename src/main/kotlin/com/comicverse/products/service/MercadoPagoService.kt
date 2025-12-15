@@ -85,6 +85,9 @@ class MercadoPagoService(
             request.externalReference?.let { ref ->
                 pendingPayments[ref] = request
                 println("💾 Datos del pago guardados con referencia: $ref")
+                println("📦 User ID: ${request.userId}")
+                println("📦 Items: ${request.items?.size ?: 0}")
+                println("📊 Total pendingPayments: ${pendingPayments.size}")
             }
 
             return PaymentResponse(
@@ -135,7 +138,12 @@ class MercadoPagoService(
      * Recupera los datos del pago guardados
      */
     fun getPendingPaymentData(externalReference: String): PaymentRequest? {
-        return pendingPayments[externalReference]
+        println("🔍 Buscando datos para referencia: $externalReference")
+        println("📊 Total pendingPayments disponibles: ${pendingPayments.size}")
+        println("🔑 Keys disponibles: ${pendingPayments.keys}")
+        val data = pendingPayments[externalReference]
+        println("📦 Datos encontrados: ${data != null}")
+        return data
     }
     
     /**

@@ -24,9 +24,8 @@ class MercadoPagoService(
         try {
             println("🔵 Creando preferencia de pago para: ${request.title} - Precio: ${request.price}")
             
-            // Convertir el precio a BigDecimal
+            // Convertir el precio de String a BigDecimal
             val priceValue = request.price.toBigDecimal()
-            println("🔵 Precio convertido: $priceValue")
             
             // Crear item del pago
             val item = PreferenceItemRequest.builder()

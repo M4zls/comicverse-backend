@@ -8,7 +8,7 @@ import java.math.BigDecimal
 data class PaymentRequest(
     val title: String,
     val description: String? = null,
-    val price: BigDecimal,
+    val price: String, // String para evitar problemas de serialización
     val quantity: Int = 1,
     val currencyId: String = "ARS",
     val externalReference: String? = null,

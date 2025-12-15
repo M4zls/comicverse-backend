@@ -154,22 +154,43 @@ class PaymentController(
         @RequestParam("payment_type", required = false) paymentType: String?,
         @RequestParam("merchant_order_id", required = false) merchantOrderId: String?,
         @RequestParam("preference_id", required = false) preferenceId: String?
-    ): ResponseEntity<Map<String, Any?>> {
-        println("✅ Pago exitoso - Payment ID: $paymentId, Status: $status")
-        return ResponseEntity.ok(
-            mapOf(
-                "success" to true,
-                "message" to "Pago exitoso",
-                "paymentId" to paymentId,
-                "status" to status,
-                "externalReference" to externalReference,
-                "collectionId" to collectionId,
-                "collectionStatus" to collectionStatus,
-                "paymentType" to paymentType,
-                "merchantOrderId" to merchantOrderId,
-                "preferenceId" to preferenceId
-            )
-        )
+    ): ResponseEntity<String> {
+        println("✅ Pago exitoso - Payment ID: $paymentId, Status: $status, External Ref: $externalReference")
+        
+        // Crear orden si el pago fue aprobado
+        if (status == "approved" && externalReference != null) {
+            val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
+            
+            if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
+                runBlocking {
+                    try {
+                        val orderRequest = CreateOrderRequest(
+                            user_id = paymentData.userId,
+                            items = paymentData.items.map { item ->
+                                CreateOrderItemRequest(
+                                    manga_id = item.manga_id,
+                                    quantity = item.quantity
+                                )
+                            }
+                        )
+                        
+                        val order = orderService.createOrder(orderRequest)
+                        println("✅ Orden creada desde success: ${order.id}")
+                        
+                        orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                        mercadoPagoService.removePendingPaymentData(externalReference)
+                    } catch (e: Exception) {
+                        println("❌ Error al crear orden: ${e.message}")
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+        
+        // Redirigir a la app con deep link
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", "comicverse://payment/success")
+            .body("Redirigiendo a la aplicación...")
     }
 
     /**
@@ -183,17 +204,15 @@ class PaymentController(
         @RequestParam("payment_id", required = false) paymentId: String?,
         @RequestParam("status", required = false) status: String?,
         @RequestParam("external_reference", required = false) externalReference: String?
-    ): ResponseEntity<Map<String, Any?>> {
+    ): ResponseEntity<String> {
         println("❌ Pago fallido - Payment ID: $paymentId, Status: $status")
-        return ResponseEntity.ok(
-            mapOf(
-                "success" to false,
-                "message" to "Pago fallido o cancelado",
-                "paymentId" to paymentId,
-                "status" to status,
-                "externalReference" to externalReference
-            )
-        )
+        
+        // Limpiar datos del pago fallido
+        externalReference?.let { mercadoPagoService.removePendingPaymentData(it) }
+        
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", "comicverse://payment/failure")
+            .body("Redirigiendo a la aplicación...")
     }
 
     /**
@@ -207,17 +226,12 @@ class PaymentController(
         @RequestParam("payment_id", required = false) paymentId: String?,
         @RequestParam("status", required = false) status: String?,
         @RequestParam("external_reference", required = false) externalReference: String?
-    ): ResponseEntity<Map<String, Any?>> {
+    ): ResponseEntity<String> {
         println("⏳ Pago pendiente - Payment ID: $paymentId, Status: $status")
-        return ResponseEntity.ok(
-            mapOf(
-                "success" to false,
-                "message" to "Pago pendiente de confirmación",
-                "paymentId" to paymentId,
-                "status" to status,
-                "externalReference" to externalReference
-            )
-        )
+        
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", "comicverse://payment/pending")
+            .body("Redirigiendo a la aplicación...")
     }
 
     /**

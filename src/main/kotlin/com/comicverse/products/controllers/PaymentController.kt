@@ -155,58 +155,49 @@ class PaymentController(
         @RequestParam("merchant_order_id", required = false) merchantOrderId: String?,
         @RequestParam("preference_id", required = false) preferenceId: String?
     ): ResponseEntity<String> {
-        println("========================================")
-        println("✅ ENDPOINT /success LLAMADO")
-        println("Payment ID: $paymentId")
-        println("Status: $status")
-        println("External Reference: $externalReference")
-        println("========================================")
-        
-        // Crear orden si el pago fue aprobado
-        if (status == "approved" && externalReference != null) {
-            println("🔍 Pago aprobado - Buscando datos del pago...")
-            val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
-            println("📦 Payment Data encontrado: ${paymentData != null}")
+        return try {
+            println("✅ Success endpoint - Status: $status, Ref: $externalReference")
             
-            if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
-                println("👤 User ID: ${paymentData.userId}")
-                println("📦 Items count: ${paymentData.items.size}")
+            // Crear orden si el pago fue aprobado
+            if (status == "approved" && externalReference != null) {
+                val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
                 
-                runBlocking {
+                if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
                     try {
-                        val orderRequest = CreateOrderRequest(
-                            user_id = paymentData.userId,
-                            items = paymentData.items.map { item ->
-                                CreateOrderItemRequest(
-                                    manga_id = item.manga_id,
-                                    quantity = item.quantity
-                                )
-                            }
-                        )
-                        
-                        println("📝 Creando orden...")
-                        val order = orderService.createOrder(orderRequest)
-                        println("✅✅✅ Orden creada: ${order.id}")
-                        
-                        orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
-                        println("✅ Estado actualizado a PAID")
-                        
-                        mercadoPagoService.removePendingPaymentData(externalReference)
+                        runBlocking {
+                            val orderRequest = CreateOrderRequest(
+                                user_id = paymentData.userId,
+                                items = paymentData.items.map { item ->
+                                    CreateOrderItemRequest(
+                                        manga_id = item.manga_id,
+                                        quantity = item.quantity
+                                    )
+                                }
+                            )
+                            
+                            val order = orderService.createOrder(orderRequest)
+                            println("✅ Orden creada: ${order.id}")
+                            
+                            orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                            mercadoPagoService.removePendingPaymentData(externalReference)
+                        }
                     } catch (e: Exception) {
-                        println("❌❌❌ Error: ${e.message}")
-                        e.printStackTrace()
+                        println("❌ Error creando orden: ${e.message}")
                     }
                 }
-            } else {
-                println("⚠️⚠️⚠️ No hay datos o faltan items/userId")
             }
+            
+            // Redirigir siempre a la app
+            ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", "comicverse://payment/success")
+                .build()
+        } catch (e: Exception) {
+            println("❌ Error en success endpoint: ${e.message}")
+            e.printStackTrace()
+            ResponseEntity.status(HttpStatus.FOUND)
+                .header("Location", "comicverse://payment/success")
+                .build()
         }
-        
-        println("🔀 Redirigiendo a: comicverse://payment/success")
-        println("========================================")
-        return ResponseEntity.status(HttpStatus.FOUND)
-            .header("Location", "comicverse://payment/success")
-            .body("Redirigiendo...")
     }
 
     /**

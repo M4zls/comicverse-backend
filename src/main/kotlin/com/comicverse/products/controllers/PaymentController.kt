@@ -249,4 +249,75 @@ class PaymentController(
             )
         )
     }
+    
+    /**
+     * Procesar orden después de pago exitoso
+     * POST /api/payments/process-order
+     */
+    @PostMapping("/process-order")
+    @Operation(summary = "Procesar orden", description = "Crea la orden en la base de datos después de un pago exitoso")
+    fun processOrder(@RequestParam("externalReference") externalReference: String): ResponseEntity<Map<String, Any?>> {
+        return try {
+            println("🔄 Procesando orden con referencia: $externalReference")
+            
+            val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
+            
+            if (paymentData == null) {
+                println("⚠️ No se encontraron datos para la referencia: $externalReference")
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    mapOf(
+                        "success" to false,
+                        "message" to "No se encontraron datos del pago"
+                    )
+                )
+            }
+            
+            if (paymentData.userId == null || paymentData.items.isNullOrEmpty()) {
+                println("⚠️ Faltan datos del pago: userId=${paymentData.userId}, items=${paymentData.items?.size}")
+                return ResponseEntity.badRequest().body(
+                    mapOf(
+                        "success" to false,
+                        "message" to "Datos del pago incompletos"
+                    )
+                )
+            }
+            
+            runBlocking {
+                val orderRequest = CreateOrderRequest(
+                    user_id = paymentData.userId,
+                    items = paymentData.items.map { item ->
+                        CreateOrderItemRequest(
+                            manga_id = item.manga_id,
+                            quantity = item.quantity
+                        )
+                    }
+                )
+                
+                val order = orderService.createOrder(orderRequest)
+                println("✅ Orden creada: ${order.id}")
+                
+                orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                println("✅ Estado actualizado a PAID")
+                
+                mercadoPagoService.removePendingPaymentData(externalReference)
+                
+                ResponseEntity.ok(
+                    mapOf(
+                        "success" to true,
+                        "message" to "Orden creada exitosamente",
+                        "orderId" to order.id
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            println("❌ Error al procesar orden: ${e.message}")
+            e.printStackTrace()
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                mapOf(
+                    "success" to false,
+                    "message" to "Error al procesar la orden: ${e.message}"
+                )
+            )
+        }
+    }
 }

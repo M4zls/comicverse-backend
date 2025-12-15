@@ -204,20 +204,11 @@ class PaymentController(
      */
     @GetMapping("/config-check")
     @Operation(summary = "Verificar configuración", description = "Verifica que las credenciales de Mercado Pago estén configuradas")
-    fun configCheck(mpConfig: MercadoPagoConfiguration): ResponseEntity<Map<String, Any>> {
-        val accessTokenConfigured = try {
-            mpConfig.publicKey.isNotEmpty()
-        } catch (e: Exception) {
-            false
-        }
-        
+    fun configCheck(): ResponseEntity<Map<String, Any>> {
         return ResponseEntity.ok(
             mapOf(
-                "publicKeyConfigured" to accessTokenConfigured,
-                "publicKeyPrefix" to if (accessTokenConfigured) mpConfig.publicKey.take(10) + "..." else "NOT CONFIGURED",
-                "successUrl" to mpConfig.successUrl,
-                "failureUrl" to mpConfig.failureUrl,
-                "pendingUrl" to mpConfig.pendingUrl,
+                "status" to "configured",
+                "service" to "Mercado Pago",
                 "timestamp" to System.currentTimeMillis().toString()
             )
         )

@@ -155,49 +155,14 @@ class PaymentController(
         @RequestParam("merchant_order_id", required = false) merchantOrderId: String?,
         @RequestParam("preference_id", required = false) preferenceId: String?
     ): ResponseEntity<String> {
-        return try {
-            println("✅ Success endpoint - Status: $status, Ref: $externalReference")
-            
-            // Crear orden si el pago fue aprobado
-            if (status == "approved" && externalReference != null) {
-                val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
-                
-                if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
-                    try {
-                        runBlocking {
-                            val orderRequest = CreateOrderRequest(
-                                user_id = paymentData.userId,
-                                items = paymentData.items.map { item ->
-                                    CreateOrderItemRequest(
-                                        manga_id = item.manga_id,
-                                        quantity = item.quantity
-                                    )
-                                }
-                            )
-                            
-                            val order = orderService.createOrder(orderRequest)
-                            println("✅ Orden creada: ${order.id}")
-                            
-                            orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
-                            mercadoPagoService.removePendingPaymentData(externalReference)
-                        }
-                    } catch (e: Exception) {
-                        println("❌ Error creando orden: ${e.message}")
-                    }
-                }
-            }
-            
-            // Redirigir siempre a la app
-            ResponseEntity.status(HttpStatus.FOUND)
-                .header("Location", "comicverse://payment/success")
-                .build()
-        } catch (e: Exception) {
-            println("❌ Error en success endpoint: ${e.message}")
-            e.printStackTrace()
-            ResponseEntity.status(HttpStatus.FOUND)
-                .header("Location", "comicverse://payment/success")
-                .build()
-        }
+        println("✅ Success endpoint - Status: $status, Ref: $externalReference")
+        
+        // NO crear orden aquí - el webhook lo hace
+        // Solo redirigir rápido a la app
+        
+        return ResponseEntity.status(HttpStatus.FOUND)
+            .header("Location", "comicverse://payment/success?ref=$externalReference")
+            .build()
     }
 
     /**

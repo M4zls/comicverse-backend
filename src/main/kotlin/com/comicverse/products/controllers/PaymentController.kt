@@ -155,13 +155,23 @@ class PaymentController(
         @RequestParam("merchant_order_id", required = false) merchantOrderId: String?,
         @RequestParam("preference_id", required = false) preferenceId: String?
     ): ResponseEntity<String> {
-        println("✅ Pago exitoso - Payment ID: $paymentId, Status: $status, External Ref: $externalReference")
+        println("========================================")
+        println("✅ ENDPOINT /success LLAMADO")
+        println("Payment ID: $paymentId")
+        println("Status: $status")
+        println("External Reference: $externalReference")
+        println("========================================")
         
         // Crear orden si el pago fue aprobado
         if (status == "approved" && externalReference != null) {
+            println("🔍 Pago aprobado - Buscando datos del pago...")
             val paymentData = mercadoPagoService.getPendingPaymentData(externalReference)
+            println("📦 Payment Data encontrado: ${paymentData != null}")
             
             if (paymentData != null && paymentData.userId != null && !paymentData.items.isNullOrEmpty()) {
+                println("👤 User ID: ${paymentData.userId}")
+                println("📦 Items count: ${paymentData.items.size}")
+                
                 runBlocking {
                     try {
                         val orderRequest = CreateOrderRequest(
@@ -174,23 +184,29 @@ class PaymentController(
                             }
                         )
                         
+                        println("📝 Creando orden...")
                         val order = orderService.createOrder(orderRequest)
-                        println("✅ Orden creada desde success: ${order.id}")
+                        println("✅✅✅ Orden creada: ${order.id}")
                         
                         orderService.updateOrderStatus(order.id, UpdateOrderRequest(status = "PAID"))
+                        println("✅ Estado actualizado a PAID")
+                        
                         mercadoPagoService.removePendingPaymentData(externalReference)
                     } catch (e: Exception) {
-                        println("❌ Error al crear orden: ${e.message}")
+                        println("❌❌❌ Error: ${e.message}")
                         e.printStackTrace()
                     }
                 }
+            } else {
+                println("⚠️⚠️⚠️ No hay datos o faltan items/userId")
             }
         }
         
-        // Redirigir a la app con deep link
+        println("🔀 Redirigiendo a: comicverse://payment/success")
+        println("========================================")
         return ResponseEntity.status(HttpStatus.FOUND)
             .header("Location", "comicverse://payment/success")
-            .body("Redirigiendo a la aplicación...")
+            .body("Redirigiendo...")
     }
 
     /**

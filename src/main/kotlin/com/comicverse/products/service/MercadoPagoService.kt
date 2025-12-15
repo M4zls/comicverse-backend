@@ -26,6 +26,7 @@ class MercadoPagoService(
             
             // Convertir el precio de String a BigDecimal
             val priceValue = request.price.toBigDecimal()
+            println("🔵 Precio convertido a BigDecimal: $priceValue")
             
             // Crear item del pago
             val item = PreferenceItemRequest.builder()
@@ -37,6 +38,8 @@ class MercadoPagoService(
                 .currencyId(request.currencyId)
                 .unitPrice(priceValue)
                 .build()
+            
+            println("🔵 Item creado: ${item.title} - ${item.unitPrice} ${item.currencyId}")
 
             // Configurar URLs de retorno
             val backUrls = PreferenceBackUrlsRequest.builder()
@@ -44,6 +47,8 @@ class MercadoPagoService(
                 .failure(mpConfig.failureUrl)
                 .pending(mpConfig.pendingUrl)
                 .build()
+            
+            println("🔵 URLs configuradas: success=${mpConfig.successUrl}")
 
             // Construir la preferencia
             val preferenceRequestBuilder = PreferenceRequest.builder()
@@ -54,6 +59,7 @@ class MercadoPagoService(
 
             // Agregar email del pagador si está disponible
             request.payerEmail?.let { email ->
+                println("🔵 Agregando email del pagador: $email")
                 preferenceRequestBuilder.payer(
                     PreferencePayerRequest.builder()
                         .email(email)
@@ -62,17 +68,30 @@ class MercadoPagoService(
             }
 
             val preferenceRequest = preferenceRequestBuilder.build()
+            println("🔵 Preferencia construida, enviando a Mercado Pago...")
 
             // Crear la preferencia en Mercado Pago
             val client = PreferenceClient()
             val preference: Preference = client.create(preferenceRequest)
+            
+            println("✅ Preferencia creada exitosamente: ${preference.id}")
 
             return PaymentResponse(
                 id = preference.id,
                 initPoint = preference.initPoint,
                 sandboxInitPoint = preference.sandboxInitPoint
             )
+        } catch (e: com.mercadopago.exceptions.MPApiException) {
+            println("❌ Error de API de Mercado Pago:")
+            println("   Status: ${e.statusCode}")
+            println("   Message: ${e.message}")
+            println("   Cause: ${e.cause}")
+            e.apiResponse?.content?.let { println("   Response: $it") }
+            throw RuntimeException("Error de Mercado Pago (${e.statusCode}): ${e.message}", e)
         } catch (e: Exception) {
+            println("❌ Error inesperado: ${e.javaClass.simpleName}")
+            println("   Message: ${e.message}")
+            e.printStackTrace()
             throw RuntimeException("Error al crear preferencia de pago: ${e.message}", e)
         }
     }
